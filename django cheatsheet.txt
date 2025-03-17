@@ -1,0 +1,178 @@
+STUFF TO LEARN IN DJANGO
+
+Validation
+Validators check if a value meets specific criteria. Their structure is the a function that takes in a value, checks if some criteria are met and if not, raises a validation error.
+def validator_func(content):
+	...
+	raise ValidationError("Explanation")
+This validator is passed to fields in a model as a member of a list in the validators attribute of the field in the format, num = models.IntegerField(validators=[validator_func]).
+They can accept additional parameters by creating another function inside the validator and the innermost function's parameter will be the value the field will pass. The validator is 
+passed to the validators argument with the format validator_func(passed_value) as if its being called. This function must return a validator.
+Eg: def validate_divisible_by(divisor):
+    def validator(value):
+        if value % divisor != 0:
+            raise ValidationError(f"{value} is not divisible by {divisor}.")
+    return validator
+You can validate multiple fields together by overwritting the clean method in the model.
+class MyModel(models.Model):
+    field1 = models.IntegerField()
+    field2 = models.IntegerField()
+    def clean(self):
+        if self.field1 > self.field2:
+            raise ValidationError("field1 must be less than or equal to field2.")
+Validators can perform database lookups to enforce constraints. For example, a validator that checks if a username is unique:
+from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
+def validate_unique_username(value):
+    if User.objects.filter(username=value).exists():
+        raise ValidationError(f"The username '{value}' is already taken.")
+
+They can be recycled by defining them in a validators.py file. Also there is a dynamic validator type where you can add new fields in forms / modify fields based on conditions.
+
+
+Meta classes in models can define: verbose names, proxyness, ordering
+
+Models
+A way to store multiple files is to create a new model with a file field and a foreign key that will act as one to many field.
+Model Inheritance can be done in three ways:
+Abstract Models: by creating an abstract model (setting meta attribute abstract=True) and inheriting it, if the meta class isn't overwritten it will also inherit the metaclass. The parent class is 
+ not created in the database
+Multitable Models: a new model is created and a one to one link is automatically created
+Proxy Models: change the behaviour of the model by operating on the original model. It does not create a new table but a way to interface with the model in a different way. proxy = True in meta
+
+Managers:
+Managers are created as a class that inherits from django.db.models.Manager and inside it create functions to do the querying. Then create an instance of the Manager inside the model with 
+the name to be used for the manager. 
+
+Static Files:
+If we're serving the static files then the steps are, add STATICFILE_DIRS, MEDIA_URL and MEDIA_ROOT in the settings file. Statics files for specific apps can be created just like templates
+by creating a static/[app_name] folder inside the app and then { load static } then using {static '[app_name]/filename'}.
+In deployment you have to collect them or something.
+
+
+FORMS
+use is_valid() on a form instance to get a boolean validation.
+use widgets to customize how it looks
+There are two main ways to create forms, ModelForms and Forms:
+django.forms.ModelForm: is used to create a form that ties into a database in which the form is automaticaly stored. Create a model inheriting the ModelForm class and then specify a meta
+class that has model attribute which is the target model and fields or exclude attributes which is a list of strings of the field names to be included or excluded.
+ It has automatic field generation and validation based on the model. save() function is used to easily save the form to the database.
+ Save [form_name](request.POST) to a variable to recieve it and apply the above functions in a view. use save function to save it.
+ or simply create the variable without a parameter and pass it to the template to create the form.
+ Override fields in the form class to customize them
+ There are several ways to display forms in templates such as: as_p, as_div, as_ul, as_table that each has distinct templates, or each field can be manually accessed from the form.fields dictionary by
+form.[field.name] and form[field.name.id_for_label].
+
+
+django.forms.Form: is used to create a form without a tie to a database, such as emailing forms and user input. Fields must be specified.
+ use the above methods to validate it and add functionality after its submitted. 
+Form.cleaned_data[[key word]] - used after Form.is_valid(), represents the data in a good format that python can work with.
+clean() - is called for each individual field by django and full_clean() is called after all fields are individually cleaned.
+django-multiupload - is a third party thats the easiest way to allow multiple file/image/media uploads in django. It has a simple we documentation on PyPi on how to implement
+
+Validators
+Validators can be applied in Models or Forms. In models they are not checked if full_clean() isn't run, but on Forms they're always run.
+They are inherited from django.core.validators or they can be defined manually. Their usually structure is this: a function that takes in a value and does any wanted processing then returns nothing or
+ raises the the ValidationError([message]).
+Django uses validators inside the settings file to validate passwords. It can be configured as well as the validators inside it.
+FileExtensionValidator can be instantiated into an object and the object can validate the extension of the file.
+python-magic library checks the file type according to a pre-defined set of file headers.
+
+Dynamic URL Routing
+It involves adding [the path]<[data type]:[keyword]> , usually preceeded and followed by / to separate it from the path and to allow other sub routes to use it. The data types it supports are str, int, slug,
+ uuid, and a valid path. Meaning you can add other sub-paths and do something like this: path('user/<int:user_id>/profile/<slug:username>/', views.user_profile, name='user_profile').
+
+
+Class Based Views
+are a way to reduce boilerplate and add functionality by inheriting from predefined classes that automatically manage most request functionalities. They are not needed in most cases. 
+Most CBVs inherit from the View class from django.views. They have get and post method automatically defined and only require the model, context_object_name, and template_name. The way to specify
+attributes is by either overridding them in the class or by passing them by keyword inside .as_view().
+There are a few generic class based views inherited from django.views.generic: 
+    TemplateView - for rendering templates, needs template_name value defined. 
+    ListView - used for displaying a list of objects. Takes in model/queryset and context_object_name.
+    DetailView- used for displaying a single object in detail.
+    CreateView - used to create a new object. needs success_url and fields as a list of string just like modelform on top of the above.
+    UpdateView & DeleteView - are used to update and delete views...
+They have methods inherited from the View class and can be overriden such as get, post, get_queryset.
+
+Admin Page
+ModelAdmin - it is a class inherited to create ModelAdmin objects that are used to modify some of the admin page functionality. It is passed to the register function along with the model it affects. 
+It has attributes such as :
+ list_display a tuple that specifies the fields displayed in the list view
+ search_field a tuple that creates a search bar that allows search and filtering based on the fields specified
+ list_filter a tuple that adds a filter on the right based on the fields specified
+ ordering a tuple that sets a default ordering based on the specified fields
+ fields a tuple that controls which fields are modifiable in the form view.
+ readonly_fields a tuple that specifies which fields are readonly
+ exclude a tuple to specify which fields from the admin form view
+ inlines a tuple to add related models inline within the parent model's form.
+ **display of fields are ordered based on the order fields specified**
+  an alternative to fields is fieldsets = (  ('bar title', {'classes': ('collapse', ), 'fields': ('title', 'description')})  ,    ('bar title2', {'classes': ('collapse2', ), 'fields': ('title', 'description')})  )
+  the inlines are used with other models
+  custom actions can be defined by creating functions that take in modeladmin, request, and queryset and adding it to an actions = [] in a ModelAdmin object
+The header can also be modifed by setting admin.site.site_header = '', admin.site.site_title, admin.site.index_title
+There are third party libraries to modify the admin page such as Jazzmin which allows even some extra code to be pasted from the documentation for further theme modification.
+
+
+AUTHENATICATION & AUTHORIZATION
+---NOT FINISHED---
+---User Creation---
+There are two ways to authenticate a user, using the login function or the login view:
+Login View: inherited from contrib.auth.views.LoginView, it takes in a template name and passes the form to it as 'form'. The form can be used in the template like any other form and this view is passed to
+ the urls path as_view(template_name=).
+login function: inherit authenticate and login functions from contrib.auth. Use authenticate(request, [user_credentials]) and true credentials will returns a user object or a list of them, then use if user is not None
+ login(request, [the returned user object])
+**The request.POST contains the form values as a key-value pair.**
+**request.user returns the user making the request.**
+
+
+SIGNALS
+There are several default signals in django that are inherited from django.db.models.signals
+for eg post_save: it takes in a signal function and a sender(the model it will act upon). The signal function needs the sender (the model it acts upon) instance (representing the instance it acts upon), created (boolean to check)
+if it created currently or if it is just being saved.
+After that use post_save.connect(signal_function, sender=TheSenderModel)
+ Another way to use signals is through decorators, from django.dispatch import reciever. create the signal function just like above but instead of using post_save.connect to connect it, use the @reciever(post_save, sender=)
+ The convention is to create the signals inside a signals.py file, and add inside the Config class in apps.py: def ready(self): import [app name].signals - You have to reference the config file instead of just the app name
+inside the settings file for this to work
+
+MIDDLEWARE
+is a framework of hooks into Django’s request/response processing. It’s a light, low-level “plugin” system for globally altering Django’s input or output. Django has built-in middleware but other middleware can be 
+created. There is a function-based and class-based approach. The function-based one is outdated so classes are used.
+The order in which middleware are saved matters because it is ran in that order
+The middleware is usually stored in its own middlewares.py file which is then registered in the middleware list in the settings file.
+ the class's __init__ function has a get_response argument which is then setup as self.get_response it must not accept any other argument. It is only called once when the web server starts.
+ the class has a __call__ function with a request argument that is called everytime a request is made. It runs self.get_response(request) with the request as the argument then returns its result.
+ The way they work is: 
+The user makes a request for the first time 
+-> all previous middlewares run 
+-> __init__ runs 
+-> request is passed to __call__ and it runs all the code above the get_response call 
+-> runs the self.get_response(request) which will call the next middleware or view and pass the request to it and waits for it to return a value 
+-> the lower middleware finished executing and returns something through get_response
+-> the remaining code inside __call__ is executed after the lower middleware finish running 
+-> returns a response to higher middleware 
+-> if a request is made again without restarting the server, all previous steps are repeated except __init__ running.
+
+Its like all the middlewares are wrapping each other from top to bottom like - highest(higher(middle(lower(lowest(view)))))
+ To class based middleware three special methods can added. 
+process_view(request, view_func, view_args, view_kwargs)
+
+PAGINATION
+for function based views	
+A paginator separates pages.
+The paginator class is import from django.core.paginator import Paginator
+The paginator is initialized using Paginator(object to paginate, instances per page)
+Attributes - .num_pages - returns total number of pages, .page_range - returns number of pages as a range()
+Assume the paginator is named p
+p.page(number) - returns the numbered page of the paginator. Which acts as an iterable with the instances it contains. .number - returns the number of items it contains, .object_list - returns the items in a literal list,
+    .has_previous() - returns boolean based on if it has a preceeding page.
+    .has_next() - returns boolean based on if it has a succeeding page.
+    .next_page_number() - returns the next page number
+
+
+
+
+GZIP
+http, websocket, csrf, ssl, ssh
+*** clean Method ***
+***mulitple form instances***
