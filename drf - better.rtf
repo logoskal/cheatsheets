@@ -3,7 +3,8 @@
 \pard\sa200\sl276\slmult1\f0\fs22\lang9 there are different renderers\par
 You can use mixins in different sections of the code to implement a functionality from them.\par
 field_1 =  django_filters.DateFilter(field_name='field_name__<specifier>', can be used to filter by specific period type - date. So the result can be filtered by date instead of it including hourse or seconds. \par
-You can implement checks to only allow users to access their own data by overriding the get_queryset method and making it return a filtered queryset. You can extend this further to add conditional checks to allow admins to access all querysets.\fs40\par
+You can implement checks to only allow users to access their own data by overriding the get_queryset method and making it return a filtered queryset. You can extend this further to add conditional checks to allow admins to access all querysets.\par
+In the Response object  there is a set_cookie() and in the request a COOKIES.get() \fs40\par
 \tab\tab\tab\tab\tab\ul SERIALIZERS\par
 \ulnone\fs22 They handle the conversion of  data to and from format that are  usable on the  web\par
 
@@ -90,12 +91,21 @@ Add the new filter class to the filter backends list. I think order of the backe
 \pard\sl276\slmult1 Viewset combine the logic for a set of views into a single class. A LOT OF FUNCTIONALITY CAN BE ADDED WITH MINIMAL CODE.\tab\par
 From rest_framework import viewsets, and inherit it (Typically ModelViewSet). Specify the queryset and its serializer. You can now use permissions, pagination, and filtering like a regular class based view. \par
 To use the ViewSet, create a router by importing a router (Typically DefaultRouter) and assigning it to the newly created router. Then register the Viewset by:\par
-router_name.register('sub_url_name', ViewSet_name). Add this router to the list of urlpatterns. It automatically generates sub urls for things such as detail view lookup. \par
+router_name.register('sub_url_name', ViewSet_name). Add this router to the list of urlpatterns. It automatically generates sub urls for things such as detail view lookup.\par
+You can edit specific functionality in a view in a default viewset you can use def get_throttles/permissions and add a condition if the self.action is create or list. \par
 To add extra functionality and routes, custom views can be defined by creating functions wrapped with the rest_framework.decorators.action decorator. The action decorator has parameters such as: detail - detailed entry or a list, methods - types of http methods allowed, optional fields such as url_path - to display the view, permission_classes ...\par
 Then define the queryset, manually serialize it with the serializer and return a rest_framework Response from serializer.data.\par
 \par
+
+\pard\sl276\slmult1\qc\ul\b\fs40 THROTTLING\ulnone\b0\fs22\par
+
+\pard\sl276\slmult1 Throttles can be applied globally using DEFAULT_THROTTLE_CLASSES and DEFAULT_THROTTLE_RATES in the REST_FRAMEWORK config. The classes specify which  type to enfore and are inherited from rest_framework.throttling or created manually, eg: AnonRateThrottle, UserRateThrottle, ScopedRateThrottle.\par
+The default throttle rate defines how many requests to allow, in the format:\par
+target: 'limit/timeframe'. for eg: 'anon': 100/day.\par
+Custom throttle rates can be created, preferebly in a throttles.py file by inheriting a throttle type from the throttling module and overriding the scope and rate value by the new type of throttle we want and adding them to the list of throttle classes. For eg: set it to daily and in the throttle rates dict do, 'daily': '1000/day'. You can create multiple of these and use them as different rates based on timeframe. Assign them based on order of preference with lowest to highest timeframe I think.\par
+Scoped rate works differently, its used to secure different endpoints and its used by setting the throttle_scope in the api and in the throttle rates dict, set the throttle rate for each scope.\par
 \par
-\par
+The throttled clients list is stored in memory. Use reddis or memchache to speed up efficieny.\par
 \par
 \par
 \par
@@ -107,5 +117,7 @@ Then define the queryset, manually serialize it with the serializer and return a
 \par
 \par
 \ul\par
+\par
+\par
 }
  

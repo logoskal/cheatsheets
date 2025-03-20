@@ -169,7 +169,14 @@ p.page(number) - returns the numbered page of the paginator. Which acts as an it
     .has_next() - returns boolean based on if it has a succeeding page.
     .next_page_number() - returns the next page number
 
-
+COMMANDS
+The commands are created in the management module imported from django.core, the commonly used class is then imported from base.BaseCommand. 
+Create a management folder inside an app and inside it a commands folder inside it a <command_name>.py file. Then inherit BaseCommand in a class named command that will have the info of how the command will execute.
+handle() - To define what it does when the command is executed, override the handle(self, *args, **kwargs) function. To retrieve arguments use: val = kwargs["argument"]. If it doesn't exist, its value is none
+help - To explain what the command does.
+add_arguments() - To add arguments to the command. (self, parser). Then parser.add_argument('positional argument', type, help) inside the add_arguments function. Optional arguments have a -- preceeding them. To accept multiple attributes, set a nargs parameter with value "+".
+-> You can use self.stdout.write("text") to write to the console.
+-> You can use self.style.SUCCESS/ERROR/WARNING("text") and pass it to the write function to style it. 
 
 
 GZIP
