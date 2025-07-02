@@ -94,6 +94,7 @@ There are a few generic class based views inherited from django.views.generic:
     CreateView - used to create a new object. needs success_url and fields as a list of string just like modelform on top of the above.
     UpdateView & DeleteView - are used to update and delete views...
 They have methods inherited from the View class and can be overriden such as get, post, get_queryset.
+TemplateView - inherited from generic directly. just needs template_name = ''. extra context can be passed by overriding get_context_data and manipulating the super().get_context_data(**kwargs) dictionary.
 
 Admin Page
 ModelAdmin - it is a class inherited to create ModelAdmin objects that are used to modify some of the admin page functionality. It is passed to the register function along with the model it affects. 
