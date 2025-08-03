@@ -1,0 +1,21 @@
+Asynchronous is a mechanism for allowing tasks to run concurrently by yielding control to other tasks when awaiting a I/O operations.
+This is not a method to offload heavy operations and pass execution around coroutines. You still have to manually offload heavy computations
+to threads. This just passes execution around coroutines. To actually write code that doesn't block and allows waiting when awaited until completion
+you need low-level stuff.
+Core Components
+Event Loop - The event loop ensures that tasks are executed in a non-blocking manner, making it ideal for I/O-bound applications.
+    run_forever(): Runs the event loop until explicitly stopped.
+    run_until_complete(future): Runs until a specific future or coroutine completes.
+    create_task(coro): Schedules a coroutine as a task.
+    call_soon(callback, *args): Schedules a callback to run in the next iteration of the event loop.
+    close(): Shuts down the event loop, releasing resources.
+Coroutines - is a special function that can pause its execution with await and resume. Coroutines are defined using the async def syntax, 
+a coroutine later. Coroutines are not executed immediately when called; instead, they return a coroutine object that must be scheduled 
+in the loop.
+Future - A Future is an awaitable object in asyncio that acts as a placeholder for a result that is not yet available. It is designed to
+be resolved (set with a result or an exception) at a later time, typically by another part of the program or an external system. Futures 
+are used to bridge asynchronous operations, allowing coroutines to wait for results without blocking the event loop.
+Futures enable coordination between coroutines, tasks, or external systems by providing a way to wait for and retrieve asynchronous results non-blocking.
+A Task is a higher-level abstraction that wraps a coroutine and manages its execution, but internally, a Task uses a Future to store its result or exception.
+### CHECK MORE
+

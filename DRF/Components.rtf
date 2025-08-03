@@ -1,0 +1,129 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\qc\ul\b\f0\fs40\lang9 PERMISSIONS\ulnone\fs22\par
+
+\pard\sl276\slmult1\b0 They are a set of classes that authorize users of different types to access a view. To use them, In a specific view, define the permission_classes list and include the needed Permission Classes. Or you can set  the default permission for all views in in settings:\line REST_FRAMEWORK = \{\par
+    'DEFAULT_PERMISSION_CLASSES': [\par
+        'rest_framework.permissions.IsAuthenticated',\par
+    ]\par
+\}\par
+They are evaluated using AND (all permissions must pass) and not OR.\par
+\par
+Object Level Permissions can be applied to objects, but they are not checked during queryset per object (for performance reasons), so to prevent access they must be filtered manually in querysets.\par
+Permissions can be dynamically modified based on conditions. Rewrite the get_permissions, by first inheriting the original function from super to  get  the data. For eg: define the get permission classes method and return the super function, inside the code check if the request is post and if it is, change the self.permission_classes attribute to [IsAdmin] to make posting available only for admins.\par
+\par
+\b CUSTOM PERMISSIONS\b0 :\par
+Custom permissions can be created by inheriting BasePermission from rest_framework.permissions. It should overwrite two functions that return a boolean:\par
+has_permission(self, request, view):\par
+to grant permission based on view-level permissions\par
+has_object_permission(self, request, view, obj):\par
+to grant permission based on object-level permissions\par
+\par
+-> Keep permissions specific and combine permissions instead of creating a complex one.\par
+-> If you dynamically modify the allowed methods based on a condition, this will word but will not be reflected in the openapi schema or the drf ui, modify http_method_names for it.\par
+\par
+
+\pard\sl276\slmult1\qc\ul\b\fs40 JWT AUTH\ulnone\b0\par
+
+\pard\sl276\slmult1\fs22 To use JWT, install djangorestframework-simplejwt. Then in the urls file: import \par
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView\par
+And in the urlpatterns list add:\par
+path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),\par
+path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh').\par
+Now making a POST request to these urls with correct credentials returns the token and refresh token.    \par
+Properties and how to handle the process can be modified in a SIMPLE_JWT dict inside settings.\par
+\par
+
+\pard\sl276\slmult1\qc\ul\b\fs40 FILTERING\par
+
+\pard\sl276\slmult1\ulnone\b0\fs22  Filtering can be done manually by modifying the get_queryset method and filtering the results manually based on kwargs in the request's url.\par
+There are also generic filter backends provided in the django_filters package that can be used to filter a queryset. Add 'django_filters' to the list of installed apps and to the    'DEFAULT_FILTER_BACKENDS':[\par
+        'django_filters.rest_framework.DjangoFilterBackend',\par
+    ]. Or set  filter_backends = [DjangoFilterBackend] if you want view specific filtering.\par
+\par
+This allows for a basic filter by using filterset_fields = ['fields...'] which will do an exact literal filtering without filling the missing content of a field. Setting a filter backend will automatically start filtering based on url.\par
+\par
+For advanced filtering you can specify two filter classes: rest_framework.filters.SearchFilter and rest_framework.filters.OrderingFilter.\par
+\b     SEARCHFILTER: \b0 search_fields must be specified. By default search is done using case-insensetive parital matchup and if multiple parameters are specified, all must match. To modify the behaviour, add any of the following before the search field: \par
+^\tab istartswith Starts-with search.\par
+=\tab iexact\tab Exact matches.\par
+$\tab iregex\tab Regex search.\par
+By default the search parameter is named 'search' but canbe overriden with SEARCH_PARAM. Searches to foreign fields can be done by using key__field.\par
+    \b ORDERINGFILTER: \b0 same things apply for ordering filter. Add filters.OrderingFilter to filter_backends, and specify ordering_fields = []. A custom ordering can be specified by  ordering = ['field1', 'field2].\par
+\par
+\b\fs24 CUSTOM FILTER CLASS: \b0\fs22 In a filters.py file create a custom filter class by inheriting from django_filters.FilterSet.\par
+Inside the Meta class specify model, and fields. The fields can be a dictionary in the form:\par
+'field' : [ 'exact' , 'iexact', 'contains', 'icontains', 'lt', 'gt', 'range' ] - lookups to support.\par
+Add this filter in the filterset_class.\par
+Custom fields for a specific lookup can also be defined by using:\par
+ min_price = django_filters.NumberFilter(field_name='price', lookup_expr='gte')\par
+then adding it to the list of fields in the Meta class.\par
+\par
+\b\fs24 CUSTOM FILTER BACKEND:\par
+\b0\fs22 When needing to define a custom filtering behaviour, custom filter backends can be defined.\par
+Inherit rest_framework.filters.BaseFilterBackend, and specify a filter_queryset(self, request, queryset, view) and return  a filtered querset.\par
+Add your custom filter to the list of filter_backends.\par
+\par
+
+\pard\sl276\slmult1\qc\ul\b\fs40 PAGINATION\ulnone\b0\fs22\par
+
+\pard\sl276\slmult1 There are three types of pagination classes. Page Number, LimitOffset, and Cursor. The first two are the most used.\par
+DRF will update the response to include the count (number of items), next (link to the next set), previous (link to the previous set), results (data).\par
+To use pagination, add the DEFAULT_PAGINATION_CLASS & PAGE_SIZE  to the REST_FRAMEWORK config dict to use the it universally or add it on a per view basis. It is compatiable with ordering and filtering parameters. Pagination could return unpredicatble data if the data isn't ordered so instead of objects.all use objects.order_by('pk').\par
+\b\fs24 PageNumberPagination: \b0\fs22 It separates data into pages.\par
+Set rest_framework.pagination.PageNumberPagination as the pagination_class and modify pagination_class.page_size.\par
+You can specify other pagination settings on a view basis such as:\par
+\tab page_query_param - specify what the parameter name in the url is.\par
+\tab page_size_query_param - specify and allow page size queryies in the url.\par
+\tab max_page_size, and so on.\par
+\b\fs24 LimitOffsetPagination: \b0\fs22 Start from a specific item (offset)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          and get a specific number of items (limit).\par
+\par
+
+\pard\sl276\slmult1\qc\ul\b\fs40 THROTTLING\par
+
+\pard\sl276\slmult1\ulnone\b0\fs22 Throttling in DRF is mainly for implementing teirs and not used for protection against DoS or BruteForce as it doesn't vulnurable from IP spoofing. It can also be resource intensive in some heavy cases as it uses Django's cache backend. The built-in throttle implementations are open to race conditions, so under high concurrency they may allow a few extra requests through, so you may need to implement your own throttle class.\par
+It works in AND mode such that each throttle is not reached.\par
+\par
+Throttling can be set globally using:\line 'DEFAULT_THROTTLE_CLASSES': [\par
+        'rest_framework.throttling.AnonRateThrottle',\par
+        'rest_framework.throttling.UserRateThrottle'\par
+    ],\par
+    'DEFAULT_THROTTLE_RATES': \{\par
+        'anon': 'rate/day',\par
+        'user': 'rate/day'\par
+    \}\par
+\par
+The rate can be specified over a period of second, minute, hour or day and must be specified after the / separator using second, minute, hour, day. \par
+To use it in a per-view basis use throttle_classes = [UserRateThrottle].\par
+There is a third default throttle called ScopedRateThrottle which can be used by, setting a scope variable in a view and then specifically setting the throttle rate for that scope in the DEFAULT_THROTTLE_RATES. It can manage the throttle rate for different views by grouping.\par
+\par
+\b\fs24 CUSTOM THROTTLES:\b0\fs22\par
+To create custom throttle classes, inherit from either SimpleRateThrottle or BaseThrottle.\par
+\b BaseRateThrottle:\par
+\b0 Its for fully customized throttles and requires manually adding many features\par
+\b SimpleRateThrottle:\b0\par
+For designing custom throttles similar to AnonThrottle & UserThrottle.\par
+rate - defines the throttle rate.\par
+cache (optional) - specify the cache backend for storing request counts.\par
+scope (optional) - links the rate to a rate defined in DEFAULT_THROTTLE_RATES.\par
+get_rate(self) - returns the rate limit for the throttle, can be dynamically modified.\par
+throttled(self, request, wait) - raise Throttled(detail='...', wait=wait)\par
+Just check the whole thing bro, I'm not in the right state of mind.\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+
+\pard\sl276\slmult1\qc\ul\b\fs40 AUTH\ulnone\b0\par
+
+\pard\sl276\slmult1\fs22 Authentication runs at the start of the view and before permission and throttling checks occur. It doesn't permit or allow requests, it simply identifies a request with a specific user.\par
+\par
+->CHECKOUT - CACHING, VERSIONING, SERIALIZING & REPRESENTATION\par
+\par
+\ul\fs40\par
+}
+ 

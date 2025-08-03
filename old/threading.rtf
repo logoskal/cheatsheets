@@ -1,0 +1,128 @@
+Threading is for working in parallel, async is for waiting in parallel. - user4815162342, stackoverflow.com
+
+Threads are part of a process  in python to allow concurrency in python.
+A thread is first created and assigned all its attributes, but doesn't have OS level representation.
+READY - the thread is started with .start() which allocated a OS-Native thread to it. Its placed in the OS's ready queue. Alive. Needs to aquire a lock on the GIL.
+RUNNING - CPU time is allocated to it.
+Waiting - the thread is temporarily paused waiting for a lock, event, or sleeping. The lock on GIL could be released.
+TERMINATED
+
+Python threads are real OS threads so they can be assigned to different processors and function like regular threads in every way except they need a lock on the GIL
+to execute which means only one thread is executing at once. This technique limits the threads to be concurrent but not parallel.
+
+threading.active_count() - returns total number of active threads.
+threading.enumerate() - returns a list of all started and running threads including the main thread.
+threading.current_thread() - returns the current thread.
+
+
+CREATING THREADS
+
+Threads can be simply created in two ways:
+Initialize a thread object by using threading.Thread(target=function(), args<optional>, daemon=False)
+Or by inheriting from the threading.Thread class:
+it requires two functions to be overriding, __init__ - requires super().__init__() to be ran.
+run(self) - includes code to be executed.
+
+Can be subclassed by the way and only override run.
+
+Attributes
+name - the human readable name of the thread.
+ident - an OS level integer identifier for the thread. None before the thread starts.
+daemon - boolean, False by default and the default applies to children.
+target - the target function.
+
+.start() - start the thread execution. Can only run once.
+.run() - the methods that executes the target. Automatically called by start().
+.is_alive() - return the boolean for whether the thread is alive.
+.join(timeout=None) - blocks the calling threads until the target thread finishes execution. Usually if its dependent on a result from it.
+
+Just like django it uses the setters and getters formated as set<attirbute> and get<attribute> to interact with attributes.
+ 
+Daemon threads are suddenly closed without completing when the program finishes so if they locked a resource like a file it could corrupt it so watchout.
+
+Scheduling is done by the OS so may not be fair or consistent on different runs so don't rely on it to be consistent on distributing CPU time.
+
+RACE
+DATA RACE
+Most operations are not atomic so if two threads are operating on a single data they could have unpredicatable behaviour where they modify the data without realizing
+the other one is operating on it. Such as two threads adding to a variable 10 times might have a predictable output of 20, but if you repeat that a million times, the
+output could be less than predicted because both could read the same value at the same time and add 1 to it so when they save the it
+they both save the same value.
+Against atomicity.
+RACE CONDITION
+A flaw in the timing or ordering of a program's execution causing incorrect behaviour. Such as two threads printing in random orders with every run.
+A Mutex protects against data races but not race conditions. Its not about threads interfering with each other in the middle of operations but threads executing before
+eachother randomly.
+Difficult to detect.
+
+To avoid races you can protect critical sections (where updates to shared resources happen) of code by using a mutex. Aquiring a lock
+is an atomic operation. If there is a lock on a resource by another thread, the other threads will block/wait.
+
+SYNCHRONIZATION
+Make the locks critical section as small as possible because it needs to block the least amount code possible for performance reasons.
+LOCK
+You can create a lock by using lock_1 = threading.Lock()
+Now the lock can be acquired by placing the lock in a block and either putting the specific section that needs to be locked inside:
+with lock_1:
+or by putting lock_1.acquire() above the section to be locked and at the end lock_1.release(). Needs manual error management.
+Any other thread can release the lock. But this is a bad idea and use RLocks instead,
+RLOCK
+allow the same thread to reacquire the same lock multiple times without causing a deadlock such as the case for recursion or a function
+locking a resource, being called by another function that has the same lock. The calling thread is recorded and if it tries to relock
+the same block without releasing, its allowed. 
+The RLock can't be released by another thread.
+RWLOCK
+A type of lock that allows free access to threads that are trying to read but only allows one thread to write and forbid reading while
+that's going on. Generally used if most threads read instead of write.
+Its more resource intensive.
+Not supported by default in python so needs an external library.
+SEMAPHORE
+a synchronization mechanism where multiple threads can acquire the same lock and a counter is kept to count how many threads are locking it. If there are more threads
+trying to lock than allowed, then those threads will wait and be notified when one thread unlocks. 
+There is a binary semaphore that only allows one thread to lock but unlike a mutex a different thread can unlock it.
+threading.Semaphore(count)
+
+Condition Variable
+A condition variable is used to coordinate between threads that need to wait for a condition to continue executing. 
+create a Condition object:
+cond_1 = threading.Condition(lock) - if no lock is specified then by default an RLock is created.
+PRODUCRE-CONSUMER PATTERNS
+### CHECK MORE
+
+BARRIER
+Barrier is a method to synchronize threads to avoid a race condition. A thread that needs to execute after another will need to wait to reach the barrier to execute.
+barrier_1 = threading.Barrier(number_of_threads) - creates a barrier
+Now adding this barrier in the middle of a thread with .wait() will force the thread to pause there until the specified amount of threads reach it. Then it'll release.
+This can be useful, if you put the barrier above a block for one thread, and below the block for another. The first thread will wait for the second to finish its block
+to continue.
+THREADPOOL
+Threadpools are a way to reuse threads for different tasks instead of terminating and starting new threads to save resources.
+threadpool_1 = concurrent.futures.ThreadPoolExecutor(max_workers), if there are no max_workers the default will be number of cores * 5. Do this inside a context manager
+ such as with concurrent.futures.ThreadPoolExecutor(max_workers) as threadpool_1. It also automatically shutsdown the pool.
+threadpool.submit(function, arguments) - submits the function to the threadpool. 
+threadpool.shutdown(wait=True) - release all resources taken by the pool. If wait is true, it will wait for all tasks to be completed.
+Threadpools are assumed to be used for IO bound tasks so they won't do CPU intensive Tasks. 
+There is also a ProcessPool.
+FUTURE
+Executors return a future class when .submit() runs. The future has several methods such as cancel(), cancelled(), running(), done().
+After getting the future, calling .result() on it will block execution until it recieves a result.
+
+LOCKING PROBLEMS
+
+Deadlock
+Liveliness - there are no deadlocks.
+Deadlock Avoiding mechanisms:
+Lock Ordering - if all needed locks are known beforehand the order that locks are acquired in must be consistent to avoid mutual deadlocks.
+Lock Timeout - Put a timeout to acquire all needed locks, if failed, release all locks, wait again, try again.
+Abandoned Lock
+If one of the threads acquires a lock and crashes the lock is never released.
+Put the critical section in a try block and finally release all the locks if something goes wrong. A better alternative is to put it
+in a context manager like with. If there are more than one locks, nest them.
+Starvation
+the OS could continously favour one thread allowing it lock onto the same resource continously. Too many threads could also cause that.
+Livelock
+happens when two threads are blocking each other by actively trying to solve a deadlock such as passing locks around constantly and
+this creates a situation where both threads don't acquire the neccessary resources and get their job done.
+Make sure only one thread is trying to resolve a situation.
+
+### There are more contents in the  Python Parallel and Concurrent Programming Part 2 tutorials, especially for algorithm design and efficiency.

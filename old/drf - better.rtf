@@ -1,0 +1,123 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs22\lang9 there are different renderers\par
+You can use mixins in different sections of the code to implement a functionality from them.\par
+field_1 =  django_filters.DateFilter(field_name='field_name__<specifier>', can be used to filter by specific period type - date. So the result can be filtered by date instead of it including hourse or seconds. \par
+You can implement checks to only allow users to access their own data by overriding the get_queryset method and making it return a filtered queryset. You can extend this further to add conditional checks to allow admins to access all querysets.\par
+In the Response object  there is a set_cookie() and in the request a COOKIES.get() \fs40\par
+\tab\tab\tab\tab\tab\ul SERIALIZERS\par
+\ulnone\fs22 They handle the conversion of  data to and from format that are  usable on the  web\par
+
+\pard\sl276\slmult1 There are different types of serializers, such as:\line ModelSerializer -  serilizes models\par
+Serializer - a generic serilizer not tied to a class\par
+To add field level validation we add a function named - validate_<field_name> (self, value). If successful it should return the validated value, else raise  a serializers.ValidationError.\par
+There are  also fields that  server different field:\line\tab HyperlinkedRelatedField - for hyperlink  representations\par
+\tab MethodSerializerField - serializes a method and returns its return value to the api\par
+\par
+\tab\tab\ul\fs44 GENERIC CLASS BASED API VIEWS\par
+\ulnone\fs22 Are High Level Pre-Built Class Based Views in that it allows for representing API endpoints as Classes. Lots of magic. They are not flexible and work mostly for basic CRUD operations. First they are imported from rest_framework.generics module. Some examples: generics.\par
+They take the form <Model><Operation>APIView. eg: ProductUpdateAPIView.\par
+It returns the queryset list. There are examples such as ListAPIView, RetrieveAPIVIew, DestroyAPIVIew and so on.\par
+Most have queryset and serializer_class as mandatory attributes.\par
+There are other attributes that most Generic Views assign values for by default.\par
+lookup_field - the specific field to lookup a row  for, pk by default.\par
+lookup_url_kwarg - the URL keyword used for keyword lookups, default=lookup_field\par
+pagination class - the class that does the pagination of the object.\par
+\par
+The queryset can be overriden for operations such as filtering by defining a new get_queryset function and inheriting the queryset from it. For eg:\par
+def get_queryset(self):\par
+\tab new_queryset = super().get_queryset()\par
+\tab return qs.filter(user=self.request.user)\par
+This calls the get_queryset function from the parent and stores  the value in new_queryset then returns  a new queryset that filters out data that isn't from the logged in user.\par
+
+\pard\sl276\slmult1\qc\ul\fs40 PERMISSIONS\ulnone\fs22\par
+
+\pard\sl276\slmult1 They are a set of permission classes that authorize users of different types to access a view. \par
+To use them, In a Generic/Class based view write an attribute permission_classes as a list and  include the needed Permission Classes.\par
+ You can set  the default permission in settings:\line REST_FRAMEWORK = \{\par
+    'DEFAULT_PERMISSION_CLASSES': [\par
+        'rest_framework.permissions.IsAuthenticated',\par
+    ]\par
+\}\par
+Object Level Permissions can be applied to objects, but they are not checked during queryset per object (for performance reasons).\par
+Permissions can be dynamically modified based on conditions. This inlcudes the serializer class and queryset too. Rewrite the get_permissions, get_queryset, or get_serializer_class, by first inheriting the original function from super to  get  the data. For eg:\par
+define the get permission classes method and return the super function, inside the code check if the request is post and if it is, change the self.permission_classes attribute to [IsAdmin] to make posting available only for admins.\par
+\par
+
+\pard\sl276\slmult1\qc\ul\fs40 GENERIC API VIEWS\ulnone\par
+
+\pard\sl276\slmult1\fs22 They are a set of base classes that abstract away the details of a\fs40\par
+
+\pard\sl276\slmult1\qc\ul API VIEWS\par
+
+\pard\sl276\slmult1\ulnone\fs22 They are similar to class based views and are more flexible than generic views. They are  used by overriding their general functions such as get, post, and so on.\par
+\par
+
+\pard\sl276\slmult1\qc\ul\b\fs40 PAGINATION\ulnone\par
+
+\pard\sl276\slmult1\b0\fs22 There are three types of pagination classes. Page Number, LimitOffset, and Cursor. The first two are the most used.\par
+DRF will update the response to include the count (number of items), next (link to the next set), previous (link to the previous set), results (data).\par
+To use pagination, add the DEFAULT_PAGINATION_CLASS & PAGE_SIZE  to the REST_FRAMEWORK config dict to use the it universally or add it on a per view basis. It is compatiable with ordering and likely filtering parameters Iono Iol. Pagination could return unpredicatble data if the data isn't ordered so instead of objects.all use objects.order_by('pk')\par
+\b\fs24 PageNumberPagination\b0\fs22\par
+It separates data into pages.\par
+You can specify other pagination settings on a view basis such as:\par
+\tab page_query_param, page_size_query_param, max_page_size, and so on.\par
+These settings can be applied globally in the REST_FRAMEWORK settings.\par
+\b\fs24 LimitOffsetPagination\par
+\b0\fs22 Start from a specific item (the offset) and get a specific number of items sequentially.\ul\par
+\par
+
+\pard\sl276\slmult1\qc\b\fs40 FILTERING\ulnone\b0\fs22\par
+
+\pard\sl276\slmult1\par
+DRF uses a filter backend to filter a queryset. DRF has two built-in filter backends such as SearchFilter and OrderingFilter from .filters module. and then add it to the list of filter backends. specify search_fields and ordering_fields.\par
+Search returns a partial contains lookup on the specified fields and if exact look up is needed add = before the field name string in the list.\par
+For advanced filtering use the django-filter library and add it to \par
+'DEFAULT_FILTER_BACKENDS': ['django_filter.rest_framework.DjangoFilterBackend'] added to the REST_FRAMEWORK config dict or in the view manually.\par
+Then in the view specify which fields to filter with. \par
+\tab filterset_fields = ['name', 'age'].\par
+This will generate an html control inside browsable api and admin page, and users will be able to filter in the url, using the specified fields. To do more advanced filtering we need to define a custom filter class, typically in a file filters.py. In the filters file:\par
+\par
+Inherit the django_filters.Filterset class and In a meta class, define the model and fields. The fields attribute has two types of data: either the fields to be searched only as a list. or a dictionary containing the fields to be searched mapped to a list parameters options for filtering.\par
+In the dictionary format, the parameters are specified such as exact, lt, gt, range or icontains for strings.\ul\par
+\ulnone\b\fs24 Defining Custom Filter Backends:\par
+\b0\fs22 You can use a custom filter backend to add custom logic to filtering such as by Owner User.\par
+Inisde the filters file, Inherit the filters.BaseFilterBackend and redfine the filter_queryset function, the function should return a queryset that you applied any filtering queries too. \par
+Add the new filter class to the filter backends list. I think order of the backends matters.\ul\par
+\par
+
+\pard\sl276\slmult1\qc\b\fs40 VIEWSETS & ROUTERS\ulnone\b0\fs22\par
+
+\pard\sl276\slmult1 Viewset combine the logic for a set of views into a single class. A LOT OF FUNCTIONALITY CAN BE ADDED WITH MINIMAL CODE.\tab\par
+From rest_framework import viewsets, and inherit it (Typically ModelViewSet). Specify the queryset and its serializer. You can now use permissions, pagination, and filtering like a regular class based view. \par
+To use the ViewSet, create a router by importing a router (Typically DefaultRouter) and assigning it to the newly created router. Then register the Viewset by:\par
+router_name.register('sub_url_name', ViewSet_name). Add this router to the list of urlpatterns. It automatically generates sub urls for things such as detail view lookup.\par
+You can edit specific functionality in a view in a default viewset you can use def get_throttles/permissions and add a condition if the self.action is create or list. \par
+To add extra functionality and routes, custom views can be defined by creating functions wrapped with the rest_framework.decorators.action decorator. The action decorator has parameters such as: detail - detailed entry or a list, methods - types of http methods allowed, optional fields such as url_path - to display the view, permission_classes ...\par
+Then define the queryset, manually serialize it with the serializer and return a rest_framework Response from serializer.data.\par
+\par
+
+\pard\sl276\slmult1\qc\ul\b\fs40 THROTTLING\ulnone\b0\fs22\par
+
+\pard\sl276\slmult1 Throttles can be applied globally using DEFAULT_THROTTLE_CLASSES and DEFAULT_THROTTLE_RATES in the REST_FRAMEWORK config. The classes specify which  type to enfore and are inherited from rest_framework.throttling or created manually, eg: AnonRateThrottle, UserRateThrottle, ScopedRateThrottle.\par
+The default throttle rate defines how many requests to allow, in the format:\par
+target: 'limit/timeframe'. for eg: 'anon': 100/day.\par
+Custom throttle rates can be created, preferebly in a throttles.py file by inheriting a throttle type from the throttling module and overriding the scope and rate value by the new type of throttle we want and adding them to the list of throttle classes. For eg: set it to daily and in the throttle rates dict do, 'daily': '1000/day'. You can create multiple of these and use them as different rates based on timeframe. Assign them based on order of preference with lowest to highest timeframe I think.\par
+Scoped rate works differently, its used to secure different endpoints and its used by setting the throttle_scope in the api and in the throttle rates dict, set the throttle rate for each scope.\par
+\par
+The throttled clients list is stored in memory. Use reddis or memchache to speed up efficieny.\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\par
+\ul\par
+\par
+\par
+}
+ 

@@ -140,7 +140,7 @@ MIDDLEWARE
 is a framework of hooks into Django’s request/response processing. It’s a light, low-level “plugin” system for globally altering Django’s input or output. Django has built-in middleware but other middleware can be 
 created. There is a function-based and class-based approach. The function-based one is outdated so classes are used.
 The order in which middleware are saved matters because it is ran in that order
-The middleware is usually stored in its own middlewares.py file which is then registered in the middleware list in the settings file.
+The middleware is usually stored in its own middlewares.py file which is then registered in the middleware list in the settings file. It doesn't inherit anything.
  the class's __init__ function has a get_response argument which is then setup as self.get_response it must not accept any other argument. It is only called once when the web server starts.
  the class has a __call__ function with a request argument that is called everytime a request is made. It runs self.get_response(request) with the request as the argument then returns its result.
  The way they work is: 

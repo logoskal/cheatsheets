@@ -1,0 +1,21 @@
+Objects are a collection of related properties and methods.
+They can be declared with curly braces as key value pairs separated by commas.
+Methods can be declared inside them with the form methodName: () => {} or with standard syntax.
+
+
+Prototypes
+Prototypes are the primary method javascript implements OOP under the hood. Its an object from which another object inherits properties 
+and methods.
+They used to be created by defining a function and then setting a .prototype.new_attribute. Now classes are used
+.__proto__ is used to access the prototype of an object.
+
+Class
+A syntatic sugar over prototypes, it works just like regular classes. constructor(parameters) must be declared to handle object creation.
+using Object.create(object) can bypass this restriction.
+
+Modern OOP
+Core:
+Encapsulation - is done by using # before the variable declaration which will make the variable private and can't be accessed outside.
+Inheritance - is done using the extends keyword.
+Polymorphism - is supported and objects can be passed without knowing type and functions can be called on the object.
+
